@@ -117,7 +117,10 @@ export class TransformService {
 		const transformSignature = buildTransformSignature(optionsWithDefault);
 		const sourceCacheKey = getCacheKey(`source:${parsed.source.key}`);
 		const transformCacheKey = getCacheKey(`transform:${parsed.source.key}:${transformSignature}`);
-		const streamTransformCache = isStreamBinaryCache(this.transformCache) ? this.transformCache : null;
+		const streamTransformCache =
+			isStreamBinaryCache(this.transformCache) && (await this.transformCache.size(transformCacheKey)) > 0
+				? this.transformCache
+				: null;
 
 		if (streamTransformCache) {
 			try {
@@ -165,10 +168,7 @@ export class TransformService {
 
 		const sourceBytesFromCache = await this.sourceCache.get(sourceCacheKey);
 		const sourceLoaded =
-			sourceBytesFromCache ??
-			(
-				await this.sourceRouter.loadSource(parsed.source, request.signal)
-			).bytes;
+			sourceBytesFromCache ?? (await this.sourceRouter.loadSource(parsed.source, request.signal)).bytes;
 
 		if (!sourceBytesFromCache) {
 			await this.sourceCache.set(sourceCacheKey, sourceLoaded);
@@ -179,12 +179,14 @@ export class TransformService {
 			const outputStream = new Response(transformed.bytes.buffer).body;
 			if (outputStream) {
 				const [userStream, s3Stream] = outputStream.tee();
-				void streamTransformCache.setStream(transformCacheKey, s3Stream, transformed.contentType).catch((error: unknown) => {
-					logger.warn("S3 stream cache write failed", {
-						error: error instanceof Error ? error.message : String(error),
-						transformCacheKey,
+				void streamTransformCache
+					.setStream(transformCacheKey, s3Stream, transformed.contentType)
+					.catch((error: unknown) => {
+						logger.warn("S3 stream cache write failed", {
+							error: error instanceof Error ? error.message : String(error),
+							transformCacheKey,
+						});
 					});
-				});
 				await this.metadataCache.set(
 					`meta:${transformCacheKey}`,
 					JSON.stringify({
