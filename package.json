@@ -22,7 +22,6 @@
   "dependencies": {
     "@cloudflare/workers-types": "^4.20260329.1",
     "@img/sharp-wasm32": "^0.34.5",
-    "ioredis": "^5.10.1",
     "sharp": "^0.34.5",
     "unstorage": "^1.17.5",
     "zod": "^4.3.6"
