@@ -1,0 +1,30 @@
+{
+  "name": "imagex",
+  "description": "A simple image proxy - with image caching and transformation",
+  "module": "src/index.ts",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "build": "bun --bun build src/index.ts --outfile imagex",
+    "start": "bun --bun run src/index.ts",
+    "dev": "bun --bun run --watch src/index.ts",
+    "wrangler:dev": "wrangler dev",
+    "typecheck": "bunx tsc --noEmit -p tsconfig.json"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "cross-env": "^10.1.0",
+    "wrangler": "^4.78.0"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@cloudflare/workers-types": "^4.20260329.1",
+    "@img/sharp-wasm32": "^0.34.5",
+    "ioredis": "^5.10.1",
+    "sharp": "^0.34.5",
+    "unstorage": "^1.17.5",
+    "zod": "^4.3.6"
+  }
+}

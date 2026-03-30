@@ -1,0 +1,4 @@
+- We use bun
+- We use typescript
+- We use biome
+- We use wrangler for Cloudflare Workers

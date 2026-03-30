@@ -1,0 +1,31 @@
+"$schema" = "./node_modules/wrangler/config-schema.json"
+name = "imagex"
+main = "src/worker.ts"
+compatibility_date = "2026-03-30"
+workers_dev = true
+compatibility_flags = ["nodejs_compat"]
+
+[build]
+command = "bun build src/worker.ts --outfile imagex"
+
+[deploy]
+command = "bun imagex"
+
+[[kv_namespaces]]
+binding = "IMAGE_CACHE"
+id = "<BINDING_ID>"
+
+[[kv_namespaces]]
+binding = "IMAGE_TRANSFORM"
+id = "<BINDING_ID>"
+
+[vars]
+HOSTNAMES = "*"
+ORIGIN_HOST = "*"
+ALLOWED_RESPONSE_CATEGORIES = "json,xml,html,yml,text,image"
+DOMAIN_WHITELIST = ""
+DOMAIN_BLACKLIST = ""
+IMAGE_TRANSFORM_MAX_SCALE_MULTIPLIER = "1"
+IMAGE_TRANSFORM_DEFAULT_TYPE = "webp"
+IMAGE_TRANSFORM_DEFAULT_QUALITY = 85
+IMAGE_TRANSFORM_TTL_SECONDS = 3600

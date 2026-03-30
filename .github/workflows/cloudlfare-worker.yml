@@ -1,0 +1,39 @@
+name: Deploy Cloudflare Worker
+
+on:
+  push:
+    tags:
+      - "c*.*.*" # Cloudflare Worker version
+
+
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Install Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+      - name: Set version
+        run: |
+          echo "VERSION=$(echo ${{ github.ref_name }} | sed 's/^c/v/')" >> $GITHUB_ENV
+        
+      - name: Publish to Cloudflare Workers
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          preCommands: |
+            bun install --frozen-lockfile
+            bun build src/worker.ts --outfile imagex
+          command: deploy
+          vars: |
+            VERSION
+          packageManager: bun
