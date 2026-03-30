@@ -107,6 +107,6 @@ export class BunS3BinaryCache implements StreamBinaryCache {
 		}
 	}
   public async size(key: string): Promise<number> {
-    return await this.client.size(this.resolveObjectKey(key));
+    return await this.client.size(this.resolveObjectKey(key)).catch(() => 0);
   }
 }
