@@ -1,18 +1,16 @@
 import type { KVNamespace } from "@cloudflare/workers-types";
-import sharpWasmModule from "@img/sharp-wasm32";
 import { NoopBinaryCache } from "./cache/noop-cache";
 import { WorkerKvMetadataCache } from "./cache/worker-kv-cache";
 import { HttpDataSource } from "./datasource/http-datasource";
 import { SourceRouter } from "./datasource/source-router";
 import { type ProxyEnvironment, proxyRequest } from "./proxy-handler";
+import { WorkerJsquashTransformer } from "./transformer/worker-jsquash-transformer";
 import { TransformService } from "./transformer/service";
-import { WorkerSharpWasmTransformer } from "./transformer/worker-sharp-wasm-transformer";
 
 interface WorkerEnvironment extends ProxyEnvironment {
 	readonly IMAGE_CACHE: KVNamespace;
 	readonly HOSTNAMES?: string;
 	readonly IMAGE_TRANSFORM_MAX_SCALE_MULTIPLIER?: string;
-	readonly SHARP_WASM?: WebAssembly.Module;
 }
 
 const splitHostnames = (value: string | undefined): readonly string[] => {
@@ -29,8 +27,7 @@ const worker = {
 	fetch(request: Request, env: WorkerEnvironment): Promise<Response> {
 		const maxScaleMultiplier = Number.parseFloat(env.IMAGE_TRANSFORM_MAX_SCALE_MULTIPLIER ?? "1");
 		const transformService = new TransformService({
-			transformer: new WorkerSharpWasmTransformer(
-				sharpWasmModule as WebAssembly.Module,
+			transformer: new WorkerJsquashTransformer(
 				Number.isFinite(maxScaleMultiplier) && maxScaleMultiplier > 0 ? maxScaleMultiplier : 1,
 			),
 			sourceRouter: new SourceRouter({

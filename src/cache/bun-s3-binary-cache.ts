@@ -1,3 +1,5 @@
+import type { S3Client } from "bun";
+import { logger } from "../logger";
 import type { StreamBinaryCache } from "../transformer/interfaces";
 
 interface BunS3BinaryCacheOptions {
@@ -9,16 +11,7 @@ interface BunS3BinaryCacheOptions {
 	readonly region?: string;
 }
 
-interface BunS3LikeFile {
-	exists(): Promise<boolean>;
-	bytes(): Promise<Uint8Array>;
-	stream(): ReadableStream<Uint8Array>;
-	write(data: unknown, options?: unknown): Promise<number>;
-}
-
-interface BunS3LikeClient {
-	file(key: string): BunS3LikeFile;
-}
+interface BunS3LikeClient extends S3Client {}
 
 const createS3Client = (options: BunS3BinaryCacheOptions): BunS3LikeClient => {
 	const bunGlobal = globalThis as typeof globalThis & {
@@ -67,7 +60,7 @@ export class BunS3BinaryCache implements StreamBinaryCache {
 	}
 
 	public async set(key: string, value: Uint8Array): Promise<void> {
-		const file = this.client.file(this.resolveObjectKey(key));
+		const file = this.client.file(this.resolveObjectKey(key), { acl: "private" });
 		await file.write(value);
 	}
 
@@ -80,7 +73,32 @@ export class BunS3BinaryCache implements StreamBinaryCache {
 	}
 
 	public async setStream(key: string, value: ReadableStream<Uint8Array>, _contentType?: string): Promise<void> {
-		const file = this.client.file(this.resolveObjectKey(key));
+		const file = this.client.file(this.resolveObjectKey(key), { acl: "private" });
 		await file.write(new Response(value));
+	}
+	public async list(): Promise<{ key: string; lastModified: string | null; size: number }[]> {
+		const files = await this.client.list({ prefix: this.prefix });
+		return (
+			files.contents?.map((file) => ({
+				key: file.key,
+				lastModified: file.lastModified ?? null,
+				size: file.size ?? 0,
+			})) ?? []
+		);
+	}
+	public async cleanup(beforeDate: Date): Promise<void> {
+		const files = await this.list();
+		for (const file of files.filter((file) => file.lastModified && new Date(file.lastModified) < beforeDate)) {
+			await this.delete(file.key);
+		}
+	}
+	public async delete(...keys: string[]): Promise<void> {
+		for (const key of keys) {
+			try {
+				await this.client.delete(this.resolveObjectKey(key));
+			} catch (error) {
+				logger.error(`Failed to delete cache entry ${key}: ${error}`);
+			}
+		}
 	}
 }

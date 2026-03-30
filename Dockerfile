@@ -13,9 +13,9 @@ FROM oven/bun:1-alpine AS runner
 
 WORKDIR /app
 
-COPY --from=builder /app/imagex ./imagex
+COPY --from=builder /app/ ./
 
 # Copy node_modules/.pnpm and node_modules/sharp directory for sharp native binaries
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /root/.bun ./root/.bun
-CMD ["bun", "--smol", "./imagex"]
+CMD ["bun", "--smol", "run", "./src/index.ts"]

@@ -66,6 +66,7 @@ const startServer = async (): Promise<void> => {
 				: new BunFileBinaryCache(runtimeEnvironment.IMAGE_TRANSFORM_DIR),
 		allowedHostnames: runtimeEnvironment.hostnameList,
 	});
+  await Bun.cron("jobs/cleanup-transform-cache.ts", "@midnight", "cleanup.cache.transform");
 
 	const server = Bun.serve({
 		port: portFromEnvironment,
