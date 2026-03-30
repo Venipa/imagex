@@ -7,6 +7,8 @@ import { BunS3DataSource } from "./datasource/bun-s3-datasource";
 import { HttpDataSource } from "./datasource/http-datasource";
 import { SourceRouter } from "./datasource/source-router";
 import { getRuntimeEnvironment } from "./environment";
+import jobs from "./jobs";
+import { logger } from "./logger";
 import { proxyRequest } from "./proxy-handler";
 import { BunSharpTransformer } from "./transformer/bun-sharp-transformer";
 import { TransformService } from "./transformer/service";
@@ -15,7 +17,6 @@ const runtimeEnvironment = getRuntimeEnvironment();
 const defaultPort = 3000;
 const portFromEnvironment = Number.parseInt(process?.env?.PORT ?? "", 10) || runtimeEnvironment.PORT || defaultPort;
 const startServer = async (): Promise<void> => {
-
 	await mkdir(runtimeEnvironment.IMAGE_CACHE_DIR, { recursive: true });
 	await mkdir(runtimeEnvironment.IMAGE_TRANSFORM_DIR, { recursive: true });
 
@@ -66,7 +67,12 @@ const startServer = async (): Promise<void> => {
 				: new BunFileBinaryCache(runtimeEnvironment.IMAGE_TRANSFORM_DIR),
 		allowedHostnames: runtimeEnvironment.hostnameList,
 	});
-  await Bun.cron("jobs/cleanup-transform-cache.ts", "@midnight", "cleanup.cache.transform");
+	for (const job of jobs) {
+		await Bun.cron.remove(job.name).catch(() => {});
+		await Bun.cron(job.script, job.cron, job.name).then(() => {
+			logger.child(job.name).info(`Job scheduled at ${job.cron}`);
+		});
+	}
 
 	const server = Bun.serve({
 		port: portFromEnvironment,
@@ -84,10 +90,10 @@ const startServer = async (): Promise<void> => {
 		},
 	});
 
-	console.log(`ImageX listening on http://localhost:${portFromEnvironment}`);
+	logger.child("server").info(`ImageX listening on http://localhost:${portFromEnvironment}`);
 	if (typeof process !== "undefined") {
 		const shutdown = async (signal: string): Promise<void> => {
-			console.log(`${signal} received, shutting down...`);
+			logger.child("shutdown").info(`${signal} received, shutting down...`);
 			await server.stop();
 			process.exit(0);
 		};
