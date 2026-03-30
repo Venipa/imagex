@@ -86,18 +86,23 @@ export class BunS3BinaryCache implements StreamBinaryCache {
 			})) ?? []
 		);
 	}
-	public async cleanup(beforeDate: Date): Promise<void> {
+	public async cleanup(beforeDate: Date): Promise<number> {
 		const files = await this.list();
+    let resultCount = 0;
 		for (const file of files.filter((file) => file.lastModified && new Date(file.lastModified) < beforeDate)) {
-			await this.delete(file.key);
+			await this.delete(file.key).then(() => {
+        resultCount++;
+      }).catch(() => {});
 		}
+    return resultCount;
 	}
 	public async delete(...keys: string[]): Promise<void> {
 		for (const key of keys) {
 			try {
-				await this.client.delete(this.resolveObjectKey(key));
+				await this.client.delete(key);
 			} catch (error) {
 				logger.error(`Failed to delete cache entry ${key}: ${error}`);
+        throw error;
 			}
 		}
 	}

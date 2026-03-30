@@ -1,7 +1,8 @@
 import { BunS3BinaryCache } from "../cache/bun-s3-binary-cache";
 import { getRuntimeEnvironment } from "../environment";
-import { logger } from "../logger";
+import { createLogger } from "../logger";
 
+const logger = createLogger("cleanup-transform-cache");
 export default async function cleanupTransformCache() {
   const runtimeEnvironment = getRuntimeEnvironment();
   if (!runtimeEnvironment.DATASOURCE_ENABLE_S3) return;
@@ -15,5 +16,6 @@ export default async function cleanupTransformCache() {
     region: runtimeEnvironment.S3_REGION,
     prefix: runtimeEnvironment.S3_TRANSFORM_CACHE_PREFIX,
   });
-  await transformCache.cleanup(beforeDate);
+  const resultCount = await transformCache.cleanup(beforeDate);
+  logger.info(`Cleaned up transform cache before ${beforeDate} with ${resultCount} results`);
 }

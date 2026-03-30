@@ -107,6 +107,6 @@ export interface BinaryCache {
 export interface StreamBinaryCache extends BinaryCache {
 	getStream(key: string): Promise<ReadableStream<Uint8Array> | null>;
 	setStream(key: string, value: ReadableStream<Uint8Array>, contentType?: string): Promise<void>;
-  cleanup(beforeDate: Date): Promise<void>;	
+  cleanup(beforeDate: Date): Promise<number>;	
   delete(...keys: string[]): Promise<void>;
 }

@@ -69,9 +69,21 @@ const startServer = async (): Promise<void> => {
 	});
 	for (const job of jobs) {
 		await Bun.cron.remove(job.name).catch(() => {});
-		await Bun.cron(job.script, job.cron, job.name).then(() => {
-			logger.child(job.name).info(`Job scheduled at ${job.cron}`);
-		});
+		for await (const cron of [job.cron].flat()) {
+			if (cron === "@now") {
+				await import(job.script)
+					.then((module) => {
+						return module.default?.();
+					})
+					.catch((error) => {
+						logger.child(job.name).error(`Error running job: ${error}`);
+					});
+				continue;
+			}
+			await Bun.cron(job.script, cron, job.name).then(() => {
+				logger.child(job.name).info(`Job scheduled at ${cron}`);
+			});
+		}
 	}
 
 	const server = Bun.serve({
