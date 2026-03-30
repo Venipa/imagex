@@ -1,3 +1,4 @@
+import sharp from "sharp";
 import type { ImageTransformer, TransformOptions, TransformResult } from "./interfaces";
 
 const outputContentTypes: Record<TransformOptions["type"], string> = {
@@ -8,27 +9,6 @@ const outputContentTypes: Record<TransformOptions["type"], string> = {
 	avif: "image/avif",
 	gif: "image/gif",
 };
-
-interface SharpLikePipeline {
-	metadata(): Promise<{ width?: number; height?: number }>;
-	rotate(value?: number): SharpLikePipeline;
-	flip(): SharpLikePipeline;
-	flop(): SharpLikePipeline;
-	extract(options: { left: number; top: number; width: number; height: number }): SharpLikePipeline;
-	trim(value?: number): SharpLikePipeline;
-	resize(options: Record<string, unknown>): SharpLikePipeline;
-	blur(value?: number): SharpLikePipeline;
-	sharpen(value?: number): SharpLikePipeline;
-	grayscale(): SharpLikePipeline;
-	modulate(value: Record<string, unknown>): SharpLikePipeline;
-	withMetadata(options?: Record<string, unknown>): SharpLikePipeline;
-	jpeg(options?: Record<string, unknown>): SharpLikePipeline;
-	png(options?: Record<string, unknown>): SharpLikePipeline;
-	webp(options?: Record<string, unknown>): SharpLikePipeline;
-	avif(options?: Record<string, unknown>): SharpLikePipeline;
-	gif(options?: Record<string, unknown>): SharpLikePipeline;
-	toBuffer(): Promise<Buffer>;
-}
 
 const normalizeResize = (options: TransformOptions): { width?: number; height?: number } => {
 	const dpr = options.dpr ?? 1;
@@ -77,11 +57,7 @@ export class BunSharpTransformer implements ImageTransformer {
 	}
 
 	public async transform(inputBytes: Uint8Array, options: TransformOptions): Promise<TransformResult> {
-		const sharpModule = await import("sharp");
-		const sharp = (sharpModule.default ?? sharpModule) as unknown as (
-			input: Uint8Array,
-			options?: Record<string, unknown>,
-		) => SharpLikePipeline;
+
 		const metadataPipeline = sharp(inputBytes, {
 			pages: options.pages,
 			page: options.page,
@@ -115,7 +91,7 @@ export class BunSharpTransformer implements ImageTransformer {
 			});
 		}
 		if (options.trim != null) {
-			pipeline = typeof options.trim === "number" ? pipeline.trim(options.trim) : pipeline.trim();
+			pipeline = typeof options.trim === "number" ? pipeline.trim({ threshold: options.trim }) : pipeline.trim();
 		}
 
 		const { width, height } = normalizeResize(options);
