@@ -1,5 +1,5 @@
-import { createLogger } from "../logger";
 import type { SourceRouter } from "../datasource/source-router";
+import { createLogger } from "../logger";
 import type { BinaryCache, ImageTransformer, MetadataCache, StreamBinaryCache } from "./interfaces";
 import { parseTransformRequest } from "./request-schema";
 
@@ -128,7 +128,7 @@ export class TransformService {
 						response: new Response(cachedStream, {
 							headers: {
 								"content-type": this.getContentType(optionsWithDefault.type),
-								"x-imagex-cache": "transform-hit",
+								"x-imagex-cache": "cache-hit",
 							},
 						}),
 					};
